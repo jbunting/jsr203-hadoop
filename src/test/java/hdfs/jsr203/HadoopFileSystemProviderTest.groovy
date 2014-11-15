@@ -17,18 +17,44 @@
  */
 package hdfs.jsr203
 
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hdfs.MiniDFSCluster
+import spock.lang.Shared
 import spock.lang.Specification
 
 /**
  * High level integration-style tests for the entire provider.
  */
 class HadoopFileSystemProviderTest extends Specification {
-	def "just starting stuff"() {
-		given: "the number 5"
-			def number = 5
-		when: "I multiply it by 10"
-			def result = number * 10
-		then: "we get 50"
-			50 == result
+
+	@Shared
+	MiniDFSCluster dfsCluster;
+
+	def setupSpec() {
+		dfsCluster = ClusterLauncher.launchCluster(HadoopFileSystemProviderTest.class.getName())
+	}
+
+	def teardownSpec() {
+		dfsCluster.shutdown()
+	}
+
+	def "test basic cluster operations"() {
+		given: "the filesystem"
+			def fs = dfsCluster.getFileSystem()
+		expect: "root dir exists"
+			fs.exists(new Path("/"))
+		and: "/test.txt doesn't exist"
+			!fs.exists(new Path("/test.txt"))
+		when: "i write a new file"
+			fs.create(new Path("/test.txt"), true).withPrintWriter {
+				it.printf("Just doing a test.%n")
+			}
+		then: "the file exists"
+			fs.exists(new Path("/test.txt"))
+		and: "it contains the proper content"
+			print fs.listStatus(new Path("/"))
+			"Just doing a test.\n" == fs.open(new Path("/test.txt")).withCloseable {
+				return it.getText("UTF-8")
+			}
 	}
 }
