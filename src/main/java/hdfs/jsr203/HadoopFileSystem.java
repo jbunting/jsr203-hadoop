@@ -227,6 +227,11 @@ public class HadoopFileSystem extends FileSystem {
 	public org.apache.hadoop.fs.FileSystem getHDFS(){
 		return this.fs;
 	}
+
+    HadoopPath getDefaultDir() {
+        // TODO : add charset management
+        return new HadoopPath(this, this.fs.getWorkingDirectory().toUri().getPath().getBytes());
+    }
 	
 	void createDirectory(byte[] dir, FileAttribute<?>... attrs) throws IOException
 	{		

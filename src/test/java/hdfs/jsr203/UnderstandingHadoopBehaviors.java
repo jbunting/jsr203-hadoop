@@ -19,38 +19,29 @@ package hdfs.jsr203;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-
-public class TestPath {
+/**
+ * TODO: Document this class
+ */
+public class UnderstandingHadoopBehaviors {
     private static MiniDFSCluster cluster;
     private static URI clusterUri;
-    private static HdfsSetupUtils setup;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         cluster = startMini(TestFileSystem.class.getName());
         clusterUri = cluster.getFileSystem().getUri();
-        setup = new HdfsSetupUtils(cluster);
     }
 
     @AfterClass
@@ -73,39 +64,37 @@ public class TestPath {
     }
 
     @Test
-    public void testNormalize() {
-        Path rootPath = Paths.get(clusterUri);
-        Path start = rootPath.resolve("/tmp/testNormalize/dir1/../file.txt");
-        Path expected = rootPath.resolve("/tmp/testNormalize/file.txt");
+    public void testHDFSBehaviors() throws IOException {
+        FileSystem hdfs = FileSystem.get(cluster.getConfiguration(0));
+        System.out.println(hdfs.getUri());
 
-        assertEquals("Normalized path is incorrect.", expected.toString(), start.normalize().toString());
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testToFile() {
-        Path rootPath = Paths.get(clusterUri);
-        Path file = rootPath.resolve("/tmp/testToFile/file.txt");
-        file.toFile();
-    }
-
-    @Test
-    public void testCompareTo() {
-        Path rootPath = Paths.get(clusterUri);
-        Path path1 = rootPath.resolve("file1.txt");
-        Path path2 = rootPath.resolve("file2.txt");
-
-        assertThat(path2, Matchers.greaterThan(path1));
-    }
-
-    @Test
-    public void testRead() throws IOException {
-        Path rootPath = Paths.get(clusterUri);
-        Path p1 = rootPath.resolve("file1.txt");
-        try (OutputStream out = setup.writePath("file1.txt")) {
-            out.write("hadoop".getBytes(StandardCharsets.UTF_8));
+        Path path = new Path("/myRoot");
+        System.out.println(path);
+        try (FSDataOutputStream out = hdfs.create(path, true)) {
+            out.writeBytes("hadoop");
         }
-        final List<String> lines = Files.readAllLines(p1, StandardCharsets.UTF_8);
-        assertEquals(Arrays.asList("hadoop"), lines);
-    }
+        System.out.println(hdfs.resolvePath(path));
 
+        Path relative = new Path("myRelative");
+        System.out.println(relative);
+        try (FSDataOutputStream out = hdfs.create(relative, true)) {
+            out.writeBytes("hadoop");
+        }
+        System.out.println(hdfs.resolvePath(relative));
+
+        hdfs.setWorkingDirectory(new Path("/home"));
+
+        System.out.println(relative);
+        try (FSDataOutputStream out = hdfs.create(relative, true)) {
+            out.writeBytes("hadoop");
+        }
+        System.out.println(hdfs.resolvePath(relative));
+
+        Path empty = new Path("");
+        System.out.println(empty);
+        try (FSDataOutputStream out = hdfs.create(relative, true)) {
+            out.writeBytes("hadoop");
+        }
+        System.out.println(hdfs.resolvePath(empty));
+    }
 }

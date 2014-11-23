@@ -437,8 +437,7 @@ public class HadoopPath implements Path {
 		if (isAbsolute()) {
             return this;
         } else {
-            //add / before the existing path
-            byte[] defaultdir = "/".getBytes(); //this.hdfs.getDefaultDir().path;
+            byte[] defaultdir = this.hdfs.getDefaultDir().path;
             int defaultlen = defaultdir.length;
             boolean endsWith = (defaultdir[defaultlen - 1] == '/');
             byte[] t = null;
